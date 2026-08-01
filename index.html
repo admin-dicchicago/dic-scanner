@@ -2,21 +2,369 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <title>DIC Volunteer Scanner</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
 
-  <link rel="stylesheet" href="css/scanner.css">
+  <meta
+    name="theme-color"
+    content="#c99700"
+  >
+
+  <title>DIC Volunteer Check-In</title>
+
+  <link
+    rel="stylesheet"
+    href="css/scanner.css"
+  >
 </head>
 
 <body>
 
-<h1>DIC Volunteer Scanner</h1>
+  <div class="app-shell">
 
-<script src="js/api.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/qr.js"></script>
-<script src="js/scanner.js"></script>
+    <!-- HEADER -->
+    <header class="app-header">
+
+      <div class="brand-block">
+
+        <div class="brand-mark">
+          YL
+        </div>
+
+        <div>
+          <span class="eyebrow">
+            DIC Volunteer Management
+          </span>
+
+          <h1>
+            Volunteer Check-In
+          </h1>
+        </div>
+
+      </div>
+
+      <div
+        id="connectionStatus"
+        class="connection-status"
+      >
+        Connecting...
+      </div>
+
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="app-content">
+
+      <!-- SESSION ERROR -->
+      <section
+        id="sessionError"
+        class="state-card error-card hidden"
+      >
+        <div class="state-icon">
+          !
+        </div>
+
+        <div>
+          <span class="eyebrow">
+            Scanner unavailable
+          </span>
+
+          <h2>
+            Unable to open this scanner session
+          </h2>
+
+          <p id="sessionErrorMessage">
+            Open the scanner again from the Coordinator Portal.
+          </p>
+        </div>
+      </section>
+
+      <!-- LOADING -->
+      <section
+        id="loadingState"
+        class="state-card"
+      >
+        <div class="spinner"></div>
+
+        <div>
+          <h2>
+            Preparing scanner
+          </h2>
+
+          <p>
+            Verifying the coordinator session and event.
+          </p>
+        </div>
+      </section>
+
+      <!-- SCANNER APPLICATION -->
+      <div
+        id="scannerApp"
+        class="hidden"
+      >
+
+        <!-- EVENT INFORMATION -->
+        <section class="event-card">
+
+          <div>
+            <span class="eyebrow">
+              Current event
+            </span>
+
+            <h2 id="eventTitle">
+              Volunteer Event
+            </h2>
+
+            <p id="eventMeta">
+              Event details will appear here.
+            </p>
+          </div>
+
+          <div class="event-count">
+
+            <span>
+              Checked in
+            </span>
+
+            <strong id="checkedInCount">
+              0
+            </strong>
+
+          </div>
+
+        </section>
+
+        <!-- SCANNER GRID -->
+        <section class="scanner-grid">
+
+          <!-- CAMERA -->
+          <article class="camera-card">
+
+            <div class="card-heading">
+
+              <div>
+                <span class="eyebrow">
+                  QR attendance
+                </span>
+
+                <h2>
+                  Scan Volunteer
+                </h2>
+              </div>
+
+              <span
+                id="cameraStatus"
+                class="status-pill"
+              >
+                Camera stopped
+              </span>
+
+            </div>
+
+            <div
+              id="cameraViewport"
+              class="camera-viewport"
+            >
+
+              <video
+                id="cameraVideo"
+                playsinline
+                muted
+                aria-label="QR scanner camera"
+              ></video>
+
+              <canvas
+                id="cameraCanvas"
+                hidden
+              ></canvas>
+
+              <div
+                class="scan-frame"
+                aria-hidden="true"
+              ></div>
+
+              <div
+                id="cameraPlaceholder"
+                class="camera-placeholder"
+              >
+                <div class="camera-placeholder-icon">
+                  QR
+                </div>
+
+                <strong>
+                  Camera is off
+                </strong>
+
+                <span>
+                  Start the camera when you are ready.
+                </span>
+              </div>
+
+            </div>
+
+            <div class="camera-actions">
+
+              <button
+                id="startCameraButton"
+                class="primary-button"
+                type="button"
+              >
+                Start Camera
+              </button>
+
+              <button
+                id="stopCameraButton"
+                class="secondary-button"
+                type="button"
+                disabled
+              >
+                Stop Camera
+              </button>
+
+            </div>
+
+          </article>
+
+          <!-- RESULT PANEL -->
+          <aside class="scanner-side">
+
+            <article
+              id="scanResult"
+              class="result-card result-neutral"
+            >
+
+              <div
+                id="resultIcon"
+                class="result-icon"
+              >
+                QR
+              </div>
+
+              <div>
+
+                <span
+                  id="resultEyebrow"
+                  class="eyebrow"
+                >
+                  Ready
+                </span>
+
+                <h2 id="resultTitle">
+                  Waiting for a scan
+                </h2>
+
+                <p id="resultMessage">
+                  Volunteer information will appear here after a successful scan.
+                </p>
+
+                <div
+                  id="resultMeta"
+                  class="result-meta"
+                ></div>
+
+              </div>
+
+            </article>
+
+            <!-- MANUAL FALLBACK -->
+            <article class="manual-card">
+
+              <div class="card-heading">
+
+                <div>
+                  <span class="eyebrow">
+                    Manual fallback
+                  </span>
+
+                  <h3>
+                    Process QR Value
+                  </h3>
+                </div>
+
+              </div>
+
+              <label for="manualQrValue">
+                QR value or check-in URL
+              </label>
+
+              <textarea
+                id="manualQrValue"
+                rows="4"
+                placeholder="Paste the volunteer QR value or check-in URL"
+              ></textarea>
+
+              <button
+                id="processManualButton"
+                class="secondary-button full-button"
+                type="button"
+              >
+                Process Value
+              </button>
+
+            </article>
+
+          </aside>
+
+        </section>
+
+        <!-- RECENT SCANS -->
+        <section class="history-card">
+
+          <div class="card-heading">
+
+            <div>
+              <span class="eyebrow">
+                Current session
+              </span>
+
+              <h2>
+                Recent Check-Ins
+              </h2>
+            </div>
+
+            <button
+              id="clearHistoryButton"
+              class="text-button"
+              type="button"
+            >
+              Clear
+            </button>
+
+          </div>
+
+          <div
+            id="scanHistory"
+            class="scan-history"
+          ></div>
+
+          <div
+            id="scanHistoryEmpty"
+            class="empty-state"
+          >
+            Successful and rejected scans will appear here.
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- QR DECODER LIBRARY -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"
+  ></script>
+
+  <!-- APPLICATION FILES -->
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/qr.js"></script>
+  <script src="js/scanner.js"></script>
 
 </body>
 </html>
