@@ -13,7 +13,12 @@
     content="#c99700"
   >
 
-  <title>DIC Volunteer Check-In</title>
+  <meta
+    name="description"
+    content="DIC Volunteer QR attendance scanner for secure volunteer check-in and check-out."
+  >
+
+  <title>DIC Volunteer Attendance</title>
 
   <link
     rel="stylesheet"
@@ -21,7 +26,7 @@
   >
 </head>
 
-<body>
+<body class="scanner-mode-checkin">
 
   <div class="app-shell">
 
@@ -30,7 +35,10 @@
 
       <div class="brand-block">
 
-        <div class="brand-mark">
+        <div
+          class="brand-mark"
+          aria-hidden="true"
+        >
           YL
         </div>
 
@@ -40,7 +48,7 @@
           </span>
 
           <h1>
-            Volunteer Check-In
+            Volunteer Attendance
           </h1>
         </div>
 
@@ -48,7 +56,9 @@
 
       <div
         id="connectionStatus"
-        class="connection-status"
+        class="connection-status connection-status-neutral"
+        role="status"
+        aria-live="polite"
       >
         Connecting...
       </div>
@@ -62,8 +72,13 @@
       <section
         id="sessionError"
         class="state-card error-card hidden"
+        role="alert"
       >
-        <div class="state-icon">
+
+        <div
+          class="state-icon"
+          aria-hidden="true"
+        >
           !
         </div>
 
@@ -80,14 +95,20 @@
             Open the scanner again from the Coordinator Portal.
           </p>
         </div>
+
       </section>
 
       <!-- LOADING -->
       <section
         id="loadingState"
         class="state-card"
+        aria-live="polite"
       >
-        <div class="spinner"></div>
+
+        <div
+          class="spinner"
+          aria-hidden="true"
+        ></div>
 
         <div>
           <h2>
@@ -98,6 +119,7 @@
             Verifying the coordinator session and event.
           </p>
         </div>
+
       </section>
 
       <!-- SCANNER APPLICATION -->
@@ -129,7 +151,10 @@
               Checked in
             </span>
 
-            <strong id="checkedInCount">
+            <strong
+              id="checkedInCount"
+              aria-live="polite"
+            >
               0
             </strong>
 
@@ -157,44 +182,52 @@
 
               <span
                 id="cameraStatus"
-                class="status-pill"
+                class="status-pill status-pill-neutral"
+                role="status"
+                aria-live="polite"
               >
                 Camera stopped
               </span>
 
             </div>
 
+            <!-- CHECK-IN / CHECK-OUT MODE -->
             <div
-  class="scanner-mode-switch"
-  role="group"
-  aria-label="Scanner mode"
->
-  <button
-    id="checkInModeButton"
-    class="scanner-mode-button active"
-    type="button"
-    data-mode="checkin"
-  >
-    Check In
-  </button>
+              class="scanner-mode-switch"
+              role="group"
+              aria-label="Choose attendance mode"
+            >
 
-  <button
-    id="checkOutModeButton"
-    class="scanner-mode-button"
-    type="button"
-    data-mode="checkout"
-  >
-    Check Out
-  </button>
-</div>
+              <button
+                id="checkInModeButton"
+                class="scanner-mode-button active"
+                type="button"
+                data-mode="checkin"
+                aria-pressed="true"
+              >
+                Check In
+              </button>
 
-<p
-  id="scannerModeHelp"
-  class="scanner-mode-help"
->
-  Scan a volunteer QR code to record arrival.
-</p>
+              <button
+                id="checkOutModeButton"
+                class="scanner-mode-button"
+                type="button"
+                data-mode="checkout"
+                aria-pressed="false"
+              >
+                Check Out
+              </button>
 
+            </div>
+
+            <p
+              id="scannerModeHelp"
+              class="scanner-mode-help"
+            >
+              Scan a volunteer QR code to record arrival.
+            </p>
+
+            <!-- CAMERA VIEW -->
             <div
               id="cameraViewport"
               class="camera-viewport"
@@ -204,12 +237,13 @@
                 id="cameraVideo"
                 playsinline
                 muted
-                aria-label="QR scanner camera"
+                aria-label="QR scanner camera preview"
               ></video>
 
               <canvas
                 id="cameraCanvas"
                 hidden
+                aria-hidden="true"
               ></canvas>
 
               <div
@@ -221,7 +255,11 @@
                 id="cameraPlaceholder"
                 class="camera-placeholder"
               >
-                <div class="camera-placeholder-icon">
+
+                <div
+                  class="camera-placeholder-icon"
+                  aria-hidden="true"
+                >
                   QR
                 </div>
 
@@ -232,10 +270,12 @@
                 <span>
                   Start the camera when you are ready.
                 </span>
+
               </div>
 
             </div>
 
+            <!-- CAMERA CONTROLS -->
             <div class="camera-actions">
 
               <button
@@ -265,11 +305,14 @@
             <article
               id="scanResult"
               class="result-card result-neutral"
+              role="status"
+              aria-live="polite"
             >
 
               <div
                 id="resultIcon"
                 class="result-icon"
+                aria-hidden="true"
               >
                 QR
               </div>
@@ -288,7 +331,7 @@
                 </h2>
 
                 <p id="resultMessage">
-                  Volunteer information will appear here after a successful scan.
+                  Volunteer information will appear here after a scan.
                 </p>
 
                 <div
@@ -324,6 +367,8 @@
               <textarea
                 id="manualQrValue"
                 rows="4"
+                autocomplete="off"
+                spellcheck="false"
                 placeholder="Paste the volunteer QR value or check-in URL"
               ></textarea>
 
@@ -341,7 +386,7 @@
 
         </section>
 
-        <!-- RECENT SCANS -->
+        <!-- RECENT ACTIVITY -->
         <section class="history-card">
 
           <div class="card-heading">
@@ -352,7 +397,7 @@
               </span>
 
               <h2>
-                Recent Check-Ins
+                Recent Attendance Activity
               </h2>
             </div>
 
@@ -375,7 +420,7 @@
             id="scanHistoryEmpty"
             class="empty-state"
           >
-            Successful and rejected scans will appear here.
+            Successful, duplicate, and rejected scans will appear here.
           </div>
 
         </section>
