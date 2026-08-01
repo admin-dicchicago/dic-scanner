@@ -412,26 +412,21 @@ function SCANNER_handleSuccessfulScan(
       new Date().toISOString()
   });
 
-  if (isDuplicate) {
-    UI_warningFeedback();
+  if (
+  result.metrics &&
+  typeof result.metrics.arrived !==
+    "undefined"
+) {
+  UI_updateCheckedInCount(
+    result.metrics.arrived
+  );
+}
 
-  } else {
-    UI_successFeedback();
-
-    const currentCount =
-      Number(
-        document
-          .getElementById(
-            "checkedInCount"
-          )
-          ?.textContent ||
-        0
-      );
-
-    UI_updateCheckedInCount(
-      currentCount + 1
-    );
-  }
+if (isDuplicate) {
+  UI_warningFeedback();
+} else {
+  UI_successFeedback();
+}
 }
 
 
