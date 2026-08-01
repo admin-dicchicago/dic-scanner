@@ -165,6 +165,37 @@
             </div>
 
             <div
+  class="scanner-mode-switch"
+  role="group"
+  aria-label="Scanner mode"
+>
+  <button
+    id="checkInModeButton"
+    class="scanner-mode-button active"
+    type="button"
+    data-mode="checkin"
+  >
+    Check In
+  </button>
+
+  <button
+    id="checkOutModeButton"
+    class="scanner-mode-button"
+    type="button"
+    data-mode="checkout"
+  >
+    Check Out
+  </button>
+</div>
+
+<p
+  id="scannerModeHelp"
+  class="scanner-mode-help"
+>
+  Scan a volunteer QR code to record arrival.
+</p>
+
+            <div
               id="cameraViewport"
               class="camera-viewport"
             >
