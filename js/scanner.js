@@ -8,6 +8,7 @@
 let SCANNER_sessionToken = "";
 let SCANNER_sessionData = null;
 let SCANNER_processing = false;
+let SCANNER_mode = "checkin";
 
 
 /* ============================================================
@@ -28,6 +29,7 @@ async function SCANNER_start() {
   UI_renderHistory();
 
   SCANNER_bindControls();
+  SCANNER_setMode("checkin");
 
   try {
     await API_healthCheck();
@@ -93,11 +95,8 @@ async function SCANNER_start() {
       "online"
     );
 
-    UI_renderResult(
-      "neutral",
-      "Waiting for a scan",
-      "Start the camera or paste a QR value to check in a volunteer.",
-      []
+    SCANNER_setMode(
+      "checkin"
     );
 
   } catch (error) {
@@ -136,6 +135,16 @@ function SCANNER_bindControls() {
       "clearHistoryButton"
     );
 
+  const checkInModeButton =
+    document.getElementById(
+      "checkInModeButton"
+    );
+
+  const checkOutModeButton =
+    document.getElementById(
+      "checkOutModeButton"
+    );
+
   if (startButton) {
     startButton.addEventListener(
       "click",
@@ -165,6 +174,106 @@ function SCANNER_bindControls() {
       UI_clearHistory
     );
   }
+
+  if (checkInModeButton) {
+    checkInModeButton.addEventListener(
+      "click",
+      function() {
+        SCANNER_setMode(
+          "checkin"
+        );
+      }
+    );
+  }
+
+  if (checkOutModeButton) {
+    checkOutModeButton.addEventListener(
+      "click",
+      function() {
+        SCANNER_setMode(
+          "checkout"
+        );
+      }
+    );
+  }
+}
+
+
+/* ============================================================
+ * SCANNER MODE
+ * ============================================================ */
+
+function SCANNER_setMode(mode) {
+  const normalizedMode =
+    String(mode || "")
+      .trim()
+      .toLowerCase() === "checkout"
+        ? "checkout"
+        : "checkin";
+
+  SCANNER_mode =
+    normalizedMode;
+
+  const checkInButton =
+    document.getElementById(
+      "checkInModeButton"
+    );
+
+  const checkOutButton =
+    document.getElementById(
+      "checkOutModeButton"
+    );
+
+  if (checkInButton) {
+    checkInButton.classList.toggle(
+      "active",
+      normalizedMode === "checkin"
+    );
+
+    checkInButton.setAttribute(
+      "aria-pressed",
+      normalizedMode === "checkin"
+        ? "true"
+        : "false"
+    );
+  }
+
+  if (checkOutButton) {
+    checkOutButton.classList.toggle(
+      "active",
+      normalizedMode === "checkout"
+    );
+
+    checkOutButton.setAttribute(
+      "aria-pressed",
+      normalizedMode === "checkout"
+        ? "true"
+        : "false"
+    );
+  }
+
+  document.body.classList.toggle(
+    "scanner-mode-checkout",
+    normalizedMode === "checkout"
+  );
+
+  UI_text(
+    "scannerModeHelp",
+    normalizedMode === "checkout"
+      ? "Scan a checked-in volunteer QR code to record departure and actual hours."
+      : "Scan a volunteer QR code to record arrival."
+  );
+
+  UI_renderResult(
+    "neutral",
+    normalizedMode === "checkout"
+      ? "Ready for check-out"
+      : "Waiting for a scan",
+    normalizedMode === "checkout"
+      ? "Start the camera or paste a QR value to check out a volunteer."
+      : "Start the camera or paste a QR value to check in a volunteer.",
+    []
+  );
 }
 
 
@@ -216,7 +325,9 @@ async function SCANNER_processManualValue() {
     UI_renderResult(
       "error",
       "QR value required",
-      "Paste a volunteer QR value or check-in URL first.",
+      SCANNER_mode === "checkout"
+        ? "Paste a volunteer QR value or check-in URL to check out the volunteer."
+        : "Paste a volunteer QR value or check-in URL to check in the volunteer.",
       []
     );
 
@@ -280,13 +391,21 @@ async function SCANNER_processQrValue(
 
   SCANNER_processing = true;
 
-  UI_renderProcessingResult();
+  UI_renderResult(
+    "neutral",
+    SCANNER_mode === "checkout"
+      ? "Processing check-out"
+      : "Processing check-in",
+    "Please wait while the volunteer assignment is verified.",
+    []
+  );
 
   try {
     const result =
       await API_processScan(
         SCANNER_sessionToken,
-        value
+        value,
+        SCANNER_mode
       );
 
     if (
@@ -328,8 +447,11 @@ async function SCANNER_processQrValue(
       message:
         message,
 
-      meta:
-        []
+      meta: [
+        SCANNER_mode === "checkout"
+          ? "Check Out"
+          : "Check In"
+      ]
     });
 
     UI_errorFeedback();
@@ -355,19 +477,58 @@ function SCANNER_handleSuccessfulScan(
     assignment.email ||
     "Volunteer";
 
-  const meta = [
-    assignment.eventLabel,
-    assignment.role,
-    assignment.timeBlock,
-    assignment.volunteerId
-      ? "ID: " +
-        assignment.volunteerId
-      : ""
-  ].filter(Boolean);
-
   const isDuplicate =
     Boolean(
       result.duplicate
+    );
+
+  const isCheckout =
+    SCANNER_mode === "checkout";
+
+  const actualHours =
+    Number(
+      result.actualHours ||
+      assignment.actualHours ||
+      0
+    );
+
+  const meta = [
+    isCheckout
+      ? "Check Out"
+      : "Check In",
+
+    assignment.eventLabel,
+
+    assignment.role,
+
+    assignment.timeBlock,
+
+    assignment.volunteerId
+      ? "ID: " +
+        assignment.volunteerId
+      : "",
+
+    isCheckout &&
+    actualHours > 0
+      ? "Hours: " +
+        actualHours.toFixed(2)
+      : ""
+  ].filter(Boolean);
+
+  const successMessage =
+    result.message ||
+    (
+      isDuplicate
+        ? (
+            isCheckout
+              ? "This volunteer is already checked out."
+              : "This volunteer is already checked in."
+          )
+        : (
+            isCheckout
+              ? "Volunteer checked out successfully."
+              : "Volunteer checked in successfully."
+          )
     );
 
   UI_renderResult(
@@ -377,12 +538,7 @@ function SCANNER_handleSuccessfulScan(
 
     title,
 
-    result.message ||
-      (
-        isDuplicate
-          ? "This volunteer is already checked in."
-          : "Volunteer checked in successfully."
-      ),
+    successMessage,
 
     meta
   );
@@ -397,36 +553,38 @@ function SCANNER_handleSuccessfulScan(
       title,
 
     message:
-      result.message ||
-      (
-        isDuplicate
-          ? "Already checked in."
-          : "Attendance recorded."
-      ),
+      successMessage,
 
     meta:
       meta,
 
     timestamp:
-      assignment.checkInTimestamp ||
-      new Date().toISOString()
+      isCheckout
+        ? (
+            assignment.checkOutTimestamp ||
+            new Date().toISOString()
+          )
+        : (
+            assignment.checkInTimestamp ||
+            new Date().toISOString()
+          )
   });
 
   if (
-  result.metrics &&
-  typeof result.metrics.arrived !==
-    "undefined"
-) {
-  UI_updateCheckedInCount(
-    result.metrics.arrived
-  );
-}
+    result.metrics &&
+    typeof result.metrics.arrived !==
+      "undefined"
+  ) {
+    UI_updateCheckedInCount(
+      result.metrics.arrived
+    );
+  }
 
-if (isDuplicate) {
-  UI_warningFeedback();
-} else {
-  UI_successFeedback();
-}
+  if (isDuplicate) {
+    UI_warningFeedback();
+  } else {
+    UI_successFeedback();
+  }
 }
 
 
@@ -478,9 +636,16 @@ function SCANNER_handleFailedScan(
         );
 
   const meta = [
+    SCANNER_mode === "checkout"
+      ? "Check Out"
+      : "Check In",
+
     assignment.eventLabel,
+
     assignment.role,
+
     assignment.timeBlock,
+
     assignment.volunteerId
       ? "ID: " +
         assignment.volunteerId
