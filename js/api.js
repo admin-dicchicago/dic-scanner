@@ -5,8 +5,14 @@
  * and the Cloudflare Worker.
  */
 
+const DIC_SCANNER_API_BASE_URL =
+  "https://dic-scanner-api.jolly-meadow-2d7f.workers.dev";
+
 const DIC_SCANNER_API_URL =
-  "https://dic-scanner-api.jolly-meadow-2d7f.workers.dev/api";
+  DIC_SCANNER_API_BASE_URL + "/api";
+
+const DIC_SCANNER_HEALTH_URL =
+  DIC_SCANNER_API_BASE_URL + "/health";
 
 
 function API_getScannerSessionFromUrl() {
@@ -21,26 +27,47 @@ function API_getScannerSessionFromUrl() {
 }
 
 
-async function API_request(
-  payload
-) {
-  const response =
-    await fetch(
-      DIC_SCANNER_API_URL,
-      {
-        method: "POST",
+function API_normalizeMode(mode) {
+  return String(
+    mode || "checkin"
+  )
+    .trim()
+    .toLowerCase() === "checkout"
+      ? "checkout"
+      : "checkin";
+}
 
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
 
-        body:
-          JSON.stringify(
-            payload
-          )
-      }
+async function API_request(payload) {
+  let response;
+
+  try {
+    response =
+      await fetch(
+        DIC_SCANNER_API_URL,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          cache:
+            "no-store",
+
+          body:
+            JSON.stringify(
+              payload || {}
+            )
+        }
+      );
+
+  } catch (error) {
+    throw new Error(
+      "Unable to connect to the scanner service. Check your internet connection and try again."
     );
+  }
 
   let result;
 
@@ -70,42 +97,93 @@ async function API_request(
 async function API_loadSession(
   scannerSession
 ) {
+  const normalizedSession =
+    String(
+      scannerSession || ""
+    ).trim();
+
+  if (!normalizedSession) {
+    throw new Error(
+      "The scanner session is missing."
+    );
+  }
+
   return API_request({
     action:
       "session",
 
     scannerSession:
-      scannerSession
+      normalizedSession
   });
 }
 
 
 async function API_processScan(
   scannerSession,
-  rawQrValue
+  rawQrValue,
+  mode
 ) {
+  const normalizedSession =
+    String(
+      scannerSession || ""
+    ).trim();
+
+  const normalizedValue =
+    String(
+      rawQrValue || ""
+    ).trim();
+
+  if (!normalizedSession) {
+    throw new Error(
+      "The scanner session is missing."
+    );
+  }
+
+  if (!normalizedValue) {
+    throw new Error(
+      "The QR value is empty."
+    );
+  }
+
   return API_request({
     action:
       "scan",
 
     scannerSession:
-      scannerSession,
+      normalizedSession,
 
     rawQrValue:
-      rawQrValue
+      normalizedValue,
+
+    mode:
+      API_normalizeMode(
+        mode
+      )
   });
 }
 
 
 async function API_healthCheck() {
-  const response =
-    await fetch(
-      "https://dic-scanner-api.jolly-meadow-2d7f.workers.dev/health",
-      {
-        method: "GET",
-        cache: "no-store"
-      }
+  let response;
+
+  try {
+    response =
+      await fetch(
+        DIC_SCANNER_HEALTH_URL,
+        {
+          method:
+            "GET",
+
+          cache:
+            "no-store"
+        }
+      );
+
+  } catch (error) {
+    throw new Error(
+      "The scanner service is offline."
     );
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -113,5 +191,29 @@ async function API_healthCheck() {
     );
   }
 
-  return response.json();
+  let result;
+
+  try {
+    result =
+      await response.json();
+
+  } catch (error) {
+    throw new Error(
+      "The scanner health service returned an invalid response."
+    );
+  }
+
+  if (
+    !result ||
+    result.success !== true
+  ) {
+    throw new Error(
+      result &&
+      result.message
+        ? result.message
+        : "The scanner service is unavailable."
+    );
+  }
+
+  return result;
 }
