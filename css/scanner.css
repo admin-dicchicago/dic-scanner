@@ -485,3 +485,56 @@ gap:18px;
     grid-column: 2;
   }
 }
+
+/* Scanner mode switch */
+
+.scanner-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f3f4f6;
+}
+
+.scanner-mode-button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.scanner-mode-button.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(159, 121, 0, 0.2);
+}
+
+.scanner-mode-help {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+body.scanner-mode-checkout .scanner-mode-button.active {
+  background: #175cd3;
+}
+
+body.scanner-mode-checkout .scan-frame {
+  border-color: #84adff;
+  box-shadow:
+    0 0 0 999px rgba(15, 23, 42, 0.28),
+    0 0 28px rgba(23, 92, 211, 0.42);
+}
+
+@media (max-width: 520px) {
+  .scanner-mode-switch {
+    grid-template-columns: 1fr;
+  }
+}
